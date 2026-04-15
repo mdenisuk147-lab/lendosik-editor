@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Редактор лендоса 🎮</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --bg: #0b0b1a;
+  --card: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.11);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+/* ── bg glow ── */
+body::before {
+  content:'';
+  position:fixed; top:-40%; left:-20%;
+  width:80vw; height:80vw;
+  background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+body::after {
+  content:'';
+  position:fixed; bottom:-40%; right:-20%;
+  width:70vw; height:70vw;
+  background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+
+.wrapper { max-width: 480px; margin:0 auto; padding:20px 16px 120px; position:relative; z-index:1; }
+
+/* ── Header ── */
+.header { text-align:center; margin-bottom:24px; }
+.logo { font-size: 2rem; margin-bottom:6px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+.header h1 {
+  font-size: 1.4rem; font-weight:800;
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color:transparent;
+  margin-bottom: 4px;
+}
+.header p { color:rgba(255,255,255,0.4); font-size:0.78rem; line-height:1.5; }
+
+/* ── hint ── */
+.hint {
+  display:flex; align-items:center; gap:8px;
+  background: rgba(168,85,247,0.1);
+  border:1px solid rgba(168,85,247,0.25);
+  border-radius:12px; padding:10px 14px;
+  margin-bottom:16px; font-size:0.75rem; color:rgba(255,255,255,0.55);
+}
+.hint-icon { font-size:1rem; flex-shrink:0; }
+
+/* ── Block cards ── */
+.blocks-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+
+.block-card {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 14px;
+  background: var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  cursor:grab; touch-action:none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  backdrop-filter: blur(12px);
+  will-change: transform;
+  user-select: none;
+}
+.block-card:active { cursor:grabbing; }
+
+/* ghost while dragging */
+.sortable-ghost {
+  opacity:0.30 !important;
+  background: rgba(168,85,247,0.12) !important;
+  border-color: rgba(168,85,247,0.3) !important;
+  transform: scale(0.96) !important;
+}
+/* element being dragged */
+.sortable-drag {
+  opacity:1 !important;
+  background: rgba(20,15,40,0.97) !important;
+  border-color: var(--purple) !important;
+  box-shadow: 0 20px 40px rgba(168,85,247,0.3), 0 6px 14px rgba(0,0,0,0.4) !important;
+  transform: scale(1.03) rotate(-0.5deg) !important;
+  z-index:9999 !important;
+}
+
+/* ── Badge ── */
+.pos-badge {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  background: rgba(168,85,247,0.2);
+  border:1px solid rgba(168,85,247,0.4);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.72rem; font-weight:700; color:var(--purple);
+  transition: all 0.25s ease;
+}
+
+/* ── Icon ── */
+.block-icon {
+  width:40px; height:40px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem;
+}
+
+/* ── Text ── */
+.block-name { font-size:0.85rem; font-weight:700; margin-bottom:1px; }
+.block-desc { font-size:0.68rem; color:rgba(255,255,255,0.35); line-height:1.3; }
+.block-info { flex:1; min-width:0; }
+
+/* ── Drag handle ── */
+.drag-handle {
+  flex-shrink:0; padding:4px;
+  color:rgba(255,255,255,0.2); font-size:0.9rem;
+  cursor:grab; transition: color 0.2s; letter-spacing:1px;
+}
+.block-card:active .drag-handle { color:rgba(255,255,255,0.5); }
+
+/* ── Move counter ── */
+.move-counter {
+  text-align:center; margin-bottom:8px;
+  font-size:0.75rem; color:rgba(255,255,255,0.3);
+}
+.move-counter span { color:var(--cyan); font-weight:700; }
+
+/* ── Success ── */
+@keyframes popIn { 0% { transform:scale(0.8); opacity:0; } 100% { transform:scale(1); opacity:1; } }
+.done-overlay {
+  position:fixed; inset:0; background:rgba(11,11,26,0.92);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:9999; animation: popIn 0.3s ease;
+}
+.done-emoji { font-size:4rem; margin-bottom:12px; animation: float 2s ease-in-out infinite; }
+.done-text { font-size:1.2rem; font-weight:700; margin-bottom:6px;
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.done-sub { color:rgba(255,255,255,0.4); font-size:0.82rem; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">🎮</div>
+    <h1>Редактор лендоса</h1>
+    <p>Перетащи блоки в нужный порядок</p>
+  </div>
+
+  <div class="hint">
+    <div class="hint-icon">☝️</div>
+    <span>Зажми и тяни карточку, чтобы поменять её место</span>
+  </div>
+
+  <div class="move-counter" id="moveCounter">Перемещений: <span>0</span></div>
+
+  <div class="blocks-list" id="sortable"></div>
+</div>
+
+<script>
+// ── Telegram WebApp ──
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+// Настраиваем MainButton
+tg.MainButton.setText('✅ Применить порядок');
+tg.MainButton.color = '#a855f7';
+tg.MainButton.textColor = '#ffffff';
+
+// ── Конфиг блоков ──
+const BLOCK_CFG = {
+  hero:     { emoji:'🦸', gradient:'linear-gradient(135deg,#f59e0b,#ef4444)', desc:'Заголовок + CTA кнопка' },
+  proof:    { emoji:'📊', gradient:'linear-gradient(135deg,#10b981,#06b6d4)', desc:'Цифры и соцдоказательства' },
+  benefits: { emoji:'✨', gradient:'linear-gradient(135deg,#a855f7,#ec4899)', desc:'4 преимущества с иконками' },
+  howto:    { emoji:'🔧', gradient:'linear-gradient(135deg,#06b6d4,#3b82f6)', desc:'3 шага как это работает' },
+  quiz:     { emoji:'🎯', gradient:'linear-gradient(135deg,#f59e0b,#84cc16)', desc:'Интерактивный квиз' },
+  form:     { emoji:'📝', gradient:'linear-gradient(135deg,#ec4899,#a855f7)', desc:'Форма заявки + кнопка' },
+  footer:   { emoji:'📄', gradient:'linear-gradient(135deg,#6b7280,#374151)', desc:'Копирайт и ссылки' },
+};
+
+let moves = 0;
+let blocks = [];
+
+// ── Загрузка блоков из URL параметров ──
+function loadBlocks() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('blocks');
+    if (raw) {
+      blocks = JSON.parse(decodeURIComponent(raw));
+    }
+  } catch(e) {
+    console.error('Failed to parse blocks:', e);
+  }
+
+  if (!blocks.length) {
+    // Фоллбэк — стандартные блоки для теста
+    blocks = [
+      { id: 'hero',     label: '🦸 Hero — заголовок и CTA' },
+      { id: 'proof',    label: '📊 Социальное доказательство' },
+      { id: 'benefits', label: '✨ Преимущества' },
+      { id: 'howto',    label: '🔧 Как это работает' },
+      { id: 'form',     label: '📝 Форма заявки' },
+      { id: 'footer',   label: '📄 Footer' },
+    ];
+  }
+
+  renderBlocks();
+  tg.MainButton.show();
+}
+
+function renderBlocks() {
+  const list = document.getElementById('sortable');
+  list.innerHTML = blocks.map((b, i) => {
+    const cfg = BLOCK_CFG[b.id] || { emoji:'📦', gradient:'rgba(255,255,255,0.15)', desc:'' };
+    return `
+    <div class="block-card" data-id="${b.id}">
+      <div class="pos-badge">${i+1}</div>
+      <div class="block-icon" style="background:${cfg.gradient}">${cfg.emoji}</div>
+      <div class="block-info">
+        <div class="block-name">${b.label}</div>
+        <div class="block-desc">${cfg.desc}</div>
+      </div>
+      <div class="drag-handle">⠿⠿</div>
+    </div>`;
+  }).join('');
+
+  Sortable.create(list, {
+    animation: 200,
+    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    handle: '.block-card',
+    onEnd() { 
+      moves++;
+      updateBadges();
+      tg.HapticFeedback.impactOccurred('light');
+    },
+  });
+}
+
+function updateBadges() {
+  document.querySelectorAll('.pos-badge').forEach((b, i) => {
+    b.textContent = i + 1;
+    b.style.transform = 'scale(1.25)';
+    setTimeout(() => b.style.transform = '', 250);
+  });
+  document.querySelector('#moveCounter span').textContent = moves;
+}
+
+// ── Отправка результата в Telegram ──
+tg.MainButton.onClick(function() {
+  const order = [...document.querySelectorAll('.block-card')].map(c => c.dataset.id);
+  
+  // Показываем успех
+  const overlay = document.createElement('div');
+  overlay.className = 'done-overlay';
+  overlay.innerHTML = `
+    <div class="done-emoji">🚀</div>
+    <div class="done-text">Порядок применён!</div>
+    <div class="done-sub">Лендинг обновляется...</div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Отправляем данные боту
+  tg.sendData(JSON.stringify({ order: order, moves: moves }));
+});
+
+loadBlocks();
+</script>
+</body>
+</html>
