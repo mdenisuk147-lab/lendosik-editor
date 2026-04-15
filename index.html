@@ -1,253 +1,418 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shining Crown Slot</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Outfit:wght@400;700;900&display=swap');
-        
-        * { box-sizing: border-box; touch-action: manipulation; }
-        body {
-            margin: 0; padding: 0;
-            background: #0a0a0a;
-            color: #f0e6d8;
-            font-family: 'Outfit', sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LENDOSIK // BLOCK EDITOR</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DM+Sans:wght@400;500;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --crown-orange: #ff8c00;
+  --crown-amber: #ffb347;
+  --crown-gold: #ffd700;
+  --crown-deep: #e65c00;
+  --bg-dark: #0a0a0a;
+  --bg-card: rgba(255,140,0,0.04);
+  --border-dim: rgba(255,140,0,0.12);
+  --border-active: rgba(255,140,0,0.35);
+  --text-main: #f0e6d8;
+  --text-dim: rgba(240,230,216,0.35);
+  --text-muted: rgba(240,230,216,0.2);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { background:var(--bg-dark); }
+body {
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh;
+  color:var(--text-main);
+  overflow-x:hidden;
+  position:relative;
+}
 
-        /* Ambient Glow + Crown BG */
-        .ambient-glow {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 150vw; height: 150vw;
-            background: radial-gradient(circle, rgba(255, 140, 0, 0.15) 0%, transparent 60%);
-            z-index: 0; pointer-events: none;
-        }
-        .crown-svg {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 300px; height: 300px; opacity: 0.1; filter: blur(20px);
-            z-index: 0; pointer-events: none;
-            animation: pulse-crown 4s ease-in-out infinite alternate;
-        }
-        @keyframes pulse-crown {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
-            100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.15; }
-        }
+/* ── CROWN SVG BACKGROUND ── */
+.crown-bg {
+  position:fixed;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:420px; height:420px;
+  z-index:0;
+  pointer-events:none;
+  opacity:0.10;
+  filter:blur(30px);
+  animation:crownPulse 6s ease-in-out infinite;
+}
+@keyframes crownPulse {
+  0%,100% { opacity:0.08; filter:blur(30px); transform:translate(-50%,-50%) scale(1); }
+  50%     { opacity:0.14; filter:blur(25px); transform:translate(-50%,-50%) scale(1.04); }
+}
 
-        /* Machine Container */
-        .slot-container {
-            z-index: 2;
-            width: 90%; max-width: 350px;
-            background: linear-gradient(180deg, #1f140d 0%, #0d0905 100%);
-            border: 2px solid rgba(255, 140, 0, 0.4);
-            border-radius: 20px;
-            box-shadow: 0 0 40px rgba(255, 140, 0, 0.2), inset 0 0 20px #000;
-            padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-        }
+/* ── AMBIENT GLOWS ── */
+.glow-top {
+  position:fixed; top:-180px; left:50%; transform:translateX(-50%);
+  width:500px; height:400px;
+  background:radial-gradient(circle, rgba(255,140,0,0.12) 0%, rgba(255,140,0,0.04) 40%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+.glow-bot {
+  position:fixed; bottom:-200px; left:50%; transform:translateX(-50%);
+  width:600px; height:350px;
+  background:radial-gradient(circle, rgba(229,92,0,0.06) 0%, transparent 60%);
+  pointer-events:none; z-index:0;
+}
 
-        .title {
-            font-family: 'Dela Gothic One', cursive;
-            font-size: 26px;
-            color: #ffd700;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            margin-bottom: 25px;
-            text-align: center;
-            letter-spacing: 1px;
-        }
+/* ── GRAIN ── */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:9998; opacity:0.5;
+}
 
-        .slot-grid {
-            display: flex; gap: 10px;
-            background: #000;
-            padding: 10px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: inset 0 0 15px rgba(255, 140, 0, 0.1);
-        }
+.wrapper {
+  max-width:440px; margin:0 auto; padding:20px 16px 130px;
+  position:relative; z-index:1;
+}
 
-        .reel {
-            width: 80px; height: 120px;
-            background: linear-gradient(180deg, #111, #222 50%, #111);
-            border: 1px solid #ff8c00;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
+/* ── HEADER ── */
+.header { text-align:center; margin-bottom:24px; }
+.crown-emoji { font-size:2.2rem; margin-bottom:8px; filter:drop-shadow(0 0 18px rgba(255,140,0,0.5)); }
+.header h1 {
+  font-family:'Dela Gothic One',cursive;
+  font-size:1.6rem;
+  color:var(--crown-amber);
+  letter-spacing:1px;
+  text-shadow:0 0 40px rgba(255,140,0,0.3);
+  margin-bottom:4px;
+}
+.header-sub {
+  font-family:'Outfit',sans-serif;
+  font-size:0.72rem; font-weight:400;
+  color:var(--text-dim);
+  letter-spacing:1.5px; text-transform:uppercase;
+}
 
-        .strip {
-            position: absolute; top: 0; left: 0; width: 100%;
-            display: flex; flex-direction: column;
-        }
+/* ── BADGE LINE ── */
+.badge-line {
+  display:flex; justify-content:center; gap:8px;
+  margin-bottom:20px;
+}
+.badge {
+  font-family:'Outfit',sans-serif;
+  font-size:0.6rem; font-weight:600; letter-spacing:1px; text-transform:uppercase;
+  padding:4px 12px;
+  border-radius:20px;
+  border:1px solid var(--border-dim);
+  color:var(--text-dim);
+}
+.badge.active {
+  background:rgba(255,140,0,0.1);
+  border-color:var(--border-active);
+  color:var(--crown-amber);
+}
 
-        .symbol {
-            height: 120px; display: flex; align-items: center; justify-content: center;
-            font-size: 60px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.8));
-        }
+/* ── INSTRUCTION ── */
+.instruction {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; margin-bottom:18px;
+  background:rgba(255,140,0,0.04);
+  border:1px solid var(--border-dim);
+  border-radius:14px;
+  font-size:0.72rem; color:var(--text-dim);
+}
+.instruction-icon {
+  width:32px; height:32px; border-radius:10px; flex-shrink:0;
+  background:rgba(255,140,0,0.08);
+  border:1px solid rgba(255,140,0,0.15);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem;
+}
 
-        /* Button */
-        .spin-btn {
-            margin-top: 30px;
-            width: 100%; height: 60px;
-            background: linear-gradient(180deg, #ffb347 0%, #ff8c00 100%);
-            border: none; border-radius: 30px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px; font-weight: 900; color: #fff;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
-            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.4), inset 0 2px 0 rgba(255,255,255,0.4);
-            cursor: pointer;
-            outline: none;
-            transition: transform 0.1s;
-        }
-        .spin-btn:active { transform: scale(0.95); box-shadow: 0 4px 10px rgba(255, 140, 0, 0.4); }
+/* ── STATS ── */
+.stats-row {
+  display:flex; gap:8px; margin-bottom:18px;
+}
+.stat-card {
+  flex:1; text-align:center;
+  padding:8px 4px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:12px;
+}
+.stat-label { font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+.stat-val { font-family:'Outfit',sans-serif; font-size:1rem; font-weight:700; color:var(--crown-gold); margin-top:2px; }
 
-        /* Effects */
-        .big-win {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.5s;
-        }
-        .big-win.active { opacity: 1; pointer-events: all; }
-        
-        .bw-text {
-            font-family: 'Dela Gothic One', cursive; font-size: 50px;
-            color: #ffd700; text-shadow: 0 0 40px #ff8c00;
-            transform: scale(0.1); transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: center; line-height: 1.1;
-        }
-        .big-win.active .bw-text { transform: scale(1); animation: pulse-text 0.5s infinite alternate; }
-        @keyframes pulse-text { from { transform: scale(1); } to { transform: scale(1.05); } }
-        
-        .bw-amount {
-            font-size: 60px; font-weight: 900; color: #fff; margin-top: 15px;
-            text-shadow: 0 5px 15px rgba(255, 140, 0, 0.8);
-        }
+/* ── BLOCKS ── */
+.blocks-list { display:flex; flex-direction:column; gap:8px; }
 
-        .claim-btn {
-            margin-top: 40px; background: #00d900; color: white; border: none; padding: 15px 40px;
-            font-size: 20px; font-weight: 900; border-radius: 12px; cursor: pointer;
-            box-shadow: 0 5px 20px rgba(0,217,0,0.4);
-        }
-        
-        .coin { position: absolute; z-index: 1001; font-size: 35px; pointer-events: none; transition: top 1.5s cubic-bezier(.5,0,1,1); }
+.block-card {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 14px;
+  background:var(--bg-card);
+  border:1px solid var(--border-dim);
+  border-radius:16px;
+  cursor:grab; touch-action:none;
+  transition:all 0.15s ease;
+  user-select:none;
+  position:relative;
+}
+.block-card:hover {
+  background:rgba(255,140,0,0.07);
+  border-color:var(--border-active);
+  box-shadow:0 0 20px rgba(255,140,0,0.05);
+}
 
-        @keyframes shake {
-            0%, 100% { transform: translate(0, 0); }
-            10% { transform: translate(-5px, -5px) rotate(-1deg); } 30% { transform: translate(5px, 5px) rotate(1deg); }
-            50% { transform: translate(-5px, 5px) rotate(-1deg); } 70% { transform: translate(5px, -5px) rotate(1deg); }
-        }
-        .shaking { animation: shake 0.4s 3; }
-        @keyframes strobe { 0%, 100% { background: #0a0a0a; } 50% { background: rgba(255,140,0,0.4); } }
-        .flashing { animation: strobe 0.1s 10; }
-    </style>
+/* GHOST */
+.sortable-ghost {
+  opacity:0.15 !important;
+  border-color:var(--crown-orange) !important;
+  background:rgba(255,140,0,0.05) !important;
+  border-radius:16px !important;
+}
+/* DRAGGING */
+.sortable-drag {
+  opacity:1 !important;
+  background:rgba(15,12,8,0.98) !important;
+  border-color:var(--crown-orange) !important;
+  border-radius:16px !important;
+  box-shadow:
+    0 0 40px rgba(255,140,0,0.2),
+    0 20px 50px rgba(0,0,0,0.7),
+    inset 0 0 40px rgba(255,140,0,0.03) !important;
+  transform:scale(1.03) rotate(-0.5deg) !important;
+  z-index:9999 !important;
+}
+
+/* ── INDEX ── */
+.block-idx {
+  width:28px; height:28px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Outfit',sans-serif;
+  font-size:0.7rem; font-weight:700;
+  color:var(--crown-orange);
+  border:1px solid rgba(255,140,0,0.25);
+  border-radius:8px;
+  background:rgba(255,140,0,0.06);
+  transition:all 0.2s ease;
+}
+
+/* ── ICON ── */
+.block-icon {
+  width:38px; height:38px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem;
+  background:rgba(255,140,0,0.05);
+  border:1px solid rgba(255,140,0,0.1);
+  border-radius:12px;
+}
+
+/* ── TEXT ── */
+.block-info { flex:1; min-width:0; }
+.block-name {
+  font-family:'Outfit',sans-serif;
+  font-size:0.82rem; font-weight:700; color:var(--text-main);
+  margin-bottom:1px;
+}
+.block-desc { font-size:0.62rem; color:var(--text-muted); letter-spacing:0.2px; }
+
+/* ── HANDLE ── */
+.drag-handle {
+  flex-shrink:0; color:rgba(255,140,0,0.15);
+  font-size:0.8rem; cursor:grab; transition:color 0.15s;
+  letter-spacing:1px;
+}
+.block-card:hover .drag-handle { color:rgba(255,140,0,0.45); }
+
+/* ── DONE ── */
+.done-overlay {
+  position:fixed; inset:0;
+  background:rgba(10,10,10,0.96);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:99999; animation:fadeIn 0.25s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.done-crown { font-size:3.5rem; margin-bottom:14px; filter:drop-shadow(0 0 30px rgba(255,140,0,0.6)); animation:crownSpin 2s ease-in-out infinite; }
+@keyframes crownSpin { 0%,100% { transform:scale(1) rotateY(0deg); } 50% { transform:scale(1.05) rotateY(15deg); } }
+.done-text {
+  font-family:'Dela Gothic One',cursive;
+  font-size:1.2rem; color:var(--crown-gold);
+  text-shadow:0 0 30px rgba(255,215,0,0.4);
+  letter-spacing:1px; margin-bottom:6px;
+}
+.done-sub { font-size:0.7rem; color:var(--text-dim); letter-spacing:0.5px; }
+</style>
 </head>
 <body>
 
-<div class="ambient-glow"></div>
-<svg class="crown-svg" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M20 120 L20 60 L55 90 L100 30 L145 90 L180 60 L180 120 Z" stroke="#ff8c00" stroke-width="4" fill="none"/>
+<!-- CROWN SVG BACKGROUND -->
+<svg class="crown-bg" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 120 L20 60 L55 90 L100 30 L145 90 L180 60 L180 120 Z"
+        stroke="#ff8c00" stroke-width="4" fill="none"
+        filter="url(#crownGlow)"/>
   <path d="M20 120 L180 120" stroke="#ff8c00" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="20" cy="60" r="4" fill="#ffd700"/>
+  <circle cx="100" cy="30" r="5" fill="#ffd700"/>
+  <circle cx="180" cy="60" r="4" fill="#ffd700"/>
+  <circle cx="55" cy="90" r="3" fill="#ffb347"/>
+  <circle cx="145" cy="90" r="3" fill="#ffb347"/>
+  <defs>
+    <filter id="crownGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
 </svg>
 
-<div class="slot-container">
-    <div class="title">СЛОТЫ<br><span style="font-size: 16px; color: #ff8c00;">ARBITRAGE EDITION</span></div>
-    
-    <div class="slot-grid">
-        <div class="reel"><div class="strip" id="r1"></div></div>
-        <div class="reel"><div class="strip" id="r2"></div></div>
-        <div class="reel"><div class="strip" id="r3"></div></div>
+<div class="glow-top"></div>
+<div class="glow-bot"></div>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="crown-emoji">👑</div>
+    <h1>LENDOSIK</h1>
+    <div class="header-sub">drag · drop · deploy</div>
+  </div>
+
+  <div class="badge-line">
+    <span class="badge active">🔥 арбитраж</span>
+    <span class="badge">💰 лендинги</span>
+    <span class="badge">⚡ крео</span>
+  </div>
+
+  <div class="instruction">
+    <div class="instruction-icon">☝️</div>
+    <span>Зажми блок и перетащи вверх или вниз,<br>чтобы изменить структуру лендинга</span>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Блоки</div>
+      <div class="stat-val" id="blockCount">—</div>
     </div>
-    
-    <button class="spin-btn" onclick="spin()">ИГРАТЬ 🎰</button>
+    <div class="stat-card">
+      <div class="stat-label">Мувы</div>
+      <div class="stat-val" id="moveCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Статус</div>
+      <div class="stat-val" id="statusVal" style="font-size:0.7rem;">READY</div>
+    </div>
+  </div>
+
+  <div class="blocks-list" id="sortable"></div>
 </div>
 
-<div class="big-win" id="bigWin">
-    <div class="bw-text">MEGA WIN!</div>
-    <div class="bw-amount" id="winAmount">$0</div>
-    <button class="claim-btn" onclick="tg.close();">ЗАБРАТЬ ДЕНЬГИ</button>
-</div>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready(); tg.expand();
-    try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch(e){}
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+try {
+  tg.setHeaderColor('#0a0a0a');
+  tg.setBackgroundColor('#0a0a0a');
+} catch(e){}
 
-    const pool = ['🍒','🍋','🍊','🍇','🍉','🔔','👑','7️⃣'];
-    const HEIGHT = 120;
-    let spinning = false;
+tg.MainButton.setText('👑 ПРИМЕНИТЬ');
+tg.MainButton.color = '#ff8c00';
+tg.MainButton.textColor = '#0a0a0a';
 
-    function createStrip(target, isInit=false) {
-        let h = ''; const n = isInit ? 3 : 40;
-        for(let i=0; i<n; i++) h += `<div class="symbol">${pool[Math.floor(Math.random()*pool.length)]}</div>`;
-        if(!isInit) {
-            h += `<div class="symbol">${pool[Math.floor(Math.random()*pool.length)]}</div>`;
-            h += `<div class="symbol">${target}</div>`;
-            h += `<div class="symbol">${pool[Math.floor(Math.random()*pool.length)]}</div>`;
-        }
-        return h;
-    }
+const BLOCK_CFG = {
+  hero:     { emoji:'⚡', desc:'Заголовок + CTA оффера' },
+  proof:    { emoji:'📊', desc:'Цифры и соцдоказательства' },
+  benefits: { emoji:'💎', desc:'Преимущества продукта' },
+  howto:    { emoji:'🔥', desc:'Шаги конверсии' },
+  quiz:     { emoji:'🎯', desc:'Квиз для квалификации' },
+  form:     { emoji:'📝', desc:'Лид-форма захвата' },
+  footer:   { emoji:'👑', desc:'Подвал + пиксели' },
+};
 
-    document.getElementById('r1').innerHTML = createStrip('', true);
-    document.getElementById('r2').innerHTML = createStrip('', true);
-    document.getElementById('r3').innerHTML = createStrip('', true);
+let moves = 0;
+let blocks = [];
 
-    function spin() {
-        if(spinning) return; spinning = true;
-        try { tg.HapticFeedback.impactOccurred('medium'); } catch(e){}
+function loadBlocks() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('blocks');
+    if (raw) blocks = JSON.parse(decodeURIComponent(raw));
+  } catch(e) { console.error(e); }
 
-        const tPool = ['7️⃣','👑','🍉'];
-        const target = tPool[Math.floor(Math.random()*tPool.length)];
-        
-        const r1 = document.getElementById('r1'); const r2 = document.getElementById('r2'); const r3 = document.getElementById('r3');
-        r1.innerHTML = createStrip(target); r2.innerHTML = createStrip(target); r3.innerHTML = createStrip(target);
+  if (!blocks.length) {
+    blocks = [
+      {id:'hero',label:'Hero — заголовок и CTA'},
+      {id:'proof',label:'Социальное доказательство'},
+      {id:'benefits',label:'Преимущества'},
+      {id:'howto',label:'Как это работает'},
+      {id:'form',label:'Форма заявки'},
+      {id:'footer',label:'Footer'},
+    ];
+  }
 
-        function animateReel(reel, dir, isLast) {
-            const y = -(reel.scrollHeight - 3 * HEIGHT);
-            // CSS Fallback для телефонов
-            reel.style.transition = 'none';
-            reel.style.transform = 'translateY(0px)';
-            void reel.offsetWidth; // reflow
-            
-            // "Anticipation" для 3 барабана
-            const ease = isLast ? 'cubic-bezier(0.1, 0.9, 0.1, 1)' : 'cubic-bezier(0.2, 0.8, 0.2, 1)';
-            reel.style.transition = `transform ${dir}ms ${ease}`;
-            reel.style.transform = `translateY(${y}px)`;
-        }
+  document.getElementById('blockCount').textContent = blocks.length;
+  renderBlocks();
+  tg.MainButton.show();
+}
 
-        animateReel(r1, 1500, false);
-        animateReel(r2, 2300, false);
-        animateReel(r3, 4000, true);
+function renderBlocks() {
+  const list = document.getElementById('sortable');
+  list.innerHTML = blocks.map((b, i) => {
+    const cfg = BLOCK_CFG[b.id] || {emoji:'📦', desc:'custom'};
+    return `
+    <div class="block-card" data-id="${b.id}">
+      <div class="block-idx">${String(i+1).padStart(2,'0')}</div>
+      <div class="block-icon">${cfg.emoji}</div>
+      <div class="block-info">
+        <div class="block-name">${b.label}</div>
+        <div class="block-desc">${cfg.desc}</div>
+      </div>
+      <div class="drag-handle">⠿⠿</div>
+    </div>`;
+  }).join('');
 
-        setTimeout(() => document.body.classList.add('shaking'), 3600);
-        setTimeout(() => { document.body.classList.remove('shaking'); showWin(); }, 4100);
-    }
+  Sortable.create(list, {
+    animation:200,
+    easing:'cubic-bezier(0.22, 1, 0.36, 1)',
+    ghostClass:'sortable-ghost',
+    dragClass:'sortable-drag',
+    handle:'.block-card',
+    onEnd() {
+      moves++;
+      updateUI();
+      try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+    },
+  });
+}
 
-    function showWin() {
-        try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
-        const bw = document.getElementById('bigWin');
-        const wa = document.getElementById('winAmount');
-        bw.classList.add('active'); bw.classList.add('flashing');
-        document.body.classList.add('shaking'); setTimeout(() => document.body.classList.remove('shaking'), 1200);
+function updateUI() {
+  document.querySelectorAll('.block-idx').forEach((el, i) => {
+    el.textContent = String(i+1).padStart(2,'0');
+    el.style.transform = 'scale(1.3)';
+    el.style.color = 'var(--crown-gold)';
+    setTimeout(() => { el.style.transform=''; el.style.color=''; }, 300);
+  });
+  document.getElementById('moveCount').textContent = moves;
+  const sv = document.getElementById('statusVal');
+  sv.textContent = moves > 0 ? 'MODIFIED' : 'READY';
+  sv.style.color = moves > 0 ? 'var(--crown-amber)' : '';
+}
 
-        let v=0; const tgt = Math.floor(Math.random()*85000)+15000; const step = Math.ceil(tgt/60);
-        const int = setInterval(()=>{
-            v += step; if(v>=tgt){ v=tgt; clearInterval(int); }
-            wa.innerText = '$' + v.toLocaleString();
-        }, 20);
+tg.MainButton.onClick(function() {
+  const order = [...document.querySelectorAll('.block-card')].map(c => c.dataset.id);
 
-        for(let i=0; i<100; i++) {
-            setTimeout(()=>{
-                const c = document.createElement('div'); c.className='coin'; c.innerText='💰';
-                c.style.left = (Math.random()*120-10)+'%'; c.style.top = '-100px';
-                bw.appendChild(c);
-                setTimeout(()=> c.style.top = window.innerHeight+100+'px', 50);
-                setTimeout(()=> c.remove(), 2000);
-            }, Math.random()*2500);
-        }
-    }
+  const overlay = document.createElement('div');
+  overlay.className = 'done-overlay';
+  overlay.innerHTML = `
+    <div class="done-crown">👑</div>
+    <div class="done-text">DEPLOYED</div>
+    <div class="done-sub">отправляем новый лендинг в Telegram...</div>
+  `;
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    tg.sendData(JSON.stringify({order, moves}));
+  }, 500);
+});
+
+loadBlocks();
 </script>
 </body>
 </html>
