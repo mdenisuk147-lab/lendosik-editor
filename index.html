@@ -3,222 +3,299 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Редактор лендоса 🎮</title>
+<title>LENDOSIK // BLOCK EDITOR</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --purple: #a855f7;
-  --cyan: #06b6d4;
-  --green: #10b981;
-  --bg: #0b0b1a;
-  --card: rgba(255,255,255,0.07);
-  --border: rgba(255,255,255,0.11);
+  --neon-green: #39ff14;
+  --neon-cyan: #00fff7;
+  --neon-magenta: #ff00ff;
+  --term-gray: #1a1a2e;
+  --term-dark: #0a0a14;
+  --term-border: #2a2a4a;
+  --grid-line: rgba(57,255,20,0.04);
+  --scanline: rgba(57,255,20,0.02);
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { background: var(--term-dark); }
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg);
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--term-dark);
   min-height: 100vh;
-  color: #fff;
+  color: #c0c0c0;
   overflow-x: hidden;
+  position: relative;
 }
 
-/* ── bg glow ── */
+/* ── SCANLINES ── */
 body::before {
   content:'';
-  position:fixed; top:-40%; left:-20%;
-  width:80vw; height:80vw;
-  background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%);
-  pointer-events:none; z-index:0;
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    var(--scanline) 2px, var(--scanline) 4px
+  );
+  pointer-events:none; z-index:9998;
+  animation: scanDrift 8s linear infinite;
 }
+@keyframes scanDrift { 0% { transform:translateY(0); } 100% { transform:translateY(4px); } }
+
+/* ── GRID BG ── */
 body::after {
   content:'';
-  position:fixed; bottom:-40%; right:-20%;
-  width:70vw; height:70vw;
-  background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%);
+  position:fixed; inset:0;
+  background:
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
   pointer-events:none; z-index:0;
 }
 
-.wrapper { max-width: 480px; margin:0 auto; padding:20px 16px 120px; position:relative; z-index:1; }
+/* ── CORNER GLOW ── */
+.glow-tl, .glow-br {
+  position:fixed; width:300px; height:300px; border-radius:50%;
+  filter:blur(100px); opacity:0.15; pointer-events:none; z-index:0;
+}
+.glow-tl { top:-100px; left:-100px; background:var(--neon-green); }
+.glow-br { bottom:-100px; right:-100px; background:var(--neon-cyan); }
 
-/* ── Header ── */
-.header { text-align:center; margin-bottom:24px; }
-.logo { font-size: 2rem; margin-bottom:6px; animation: float 3s ease-in-out infinite; }
-@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+.wrapper {
+  max-width:460px; margin:0 auto; padding:20px 14px 130px;
+  position:relative; z-index:1;
+}
+
+/* ── HEADER ── */
+.header { margin-bottom:22px; position:relative; }
+.header-tag {
+  display:inline-block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.6rem; font-weight:500; letter-spacing:3px; text-transform:uppercase;
+  color:var(--neon-green); opacity:0.6;
+  border:1px solid rgba(57,255,20,0.2);
+  padding:4px 10px; border-radius:2px;
+  margin-bottom:10px;
+}
 .header h1 {
-  font-size: 1.4rem; font-weight:800;
-  background: linear-gradient(135deg, var(--purple), var(--cyan));
-  -webkit-background-clip: text; -webkit-text-fill-color:transparent;
-  margin-bottom: 4px;
+  font-family:'Syne',sans-serif;
+  font-size:1.7rem; font-weight:800;
+  color:#fff; letter-spacing:-0.5px;
+  line-height:1.1; margin-bottom:6px;
 }
-.header p { color:rgba(255,255,255,0.4); font-size:0.78rem; line-height:1.5; }
-
-/* ── hint ── */
-.hint {
-  display:flex; align-items:center; gap:8px;
-  background: rgba(168,85,247,0.1);
-  border:1px solid rgba(168,85,247,0.25);
-  border-radius:12px; padding:10px 14px;
-  margin-bottom:16px; font-size:0.75rem; color:rgba(255,255,255,0.55);
+.header h1 .accent { color:var(--neon-green); }
+.header-sub {
+  font-size:0.7rem; color:rgba(255,255,255,0.25);
+  letter-spacing:0.5px;
 }
-.hint-icon { font-size:1rem; flex-shrink:0; }
+.header-sub .blink { animation: blink 1.2s step-end infinite; }
+@keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
 
-/* ── Block cards ── */
-.blocks-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+/* ── TERMINAL LINE ── */
+.term-line {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 12px; margin-bottom:16px;
+  background:rgba(57,255,20,0.03);
+  border:1px solid rgba(57,255,20,0.1);
+  border-left:3px solid var(--neon-green);
+  font-size:0.68rem; color:rgba(57,255,20,0.7);
+}
+.term-prompt { color:var(--neon-green); font-weight:700; }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display:flex; gap:12px; margin-bottom:16px;
+  font-size:0.65rem; letter-spacing:0.5px;
+}
+.stat {
+  padding:6px 10px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--term-border);
+  color:rgba(255,255,255,0.35);
+  flex:1; text-align:center;
+}
+.stat .val { color:var(--neon-cyan); font-weight:700; font-size:0.85rem; display:block; margin-top:2px; }
+
+/* ── BLOCK CARDS ── */
+.blocks-list { display:flex; flex-direction:column; gap:6px; }
 
 .block-card {
   display:flex; align-items:center; gap:12px;
-  padding:14px 14px;
-  background: var(--card);
-  border:1px solid var(--border);
-  border-radius:18px;
+  padding:12px 14px;
+  background: rgba(255,255,255,0.02);
+  border:1px solid var(--term-border);
   cursor:grab; touch-action:none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  backdrop-filter: blur(12px);
-  will-change: transform;
-  user-select: none;
+  transition: all 0.12s ease;
+  user-select:none;
+  position:relative;
+  overflow:hidden;
 }
-.block-card:active { cursor:grabbing; }
+.block-card::before {
+  content:'';
+  position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--neon-green); opacity:0;
+  transition:opacity 0.15s;
+}
+.block-card:hover::before { opacity:1; }
+.block-card:hover {
+  background:rgba(57,255,20,0.03);
+  border-color:rgba(57,255,20,0.2);
+}
 
-/* ghost while dragging */
+/* DRAGGING */
 .sortable-ghost {
-  opacity:0.30 !important;
-  background: rgba(168,85,247,0.12) !important;
-  border-color: rgba(168,85,247,0.3) !important;
-  transform: scale(0.96) !important;
+  opacity:0.2 !important;
+  border-color:var(--neon-green) !important;
+  background:rgba(57,255,20,0.05) !important;
 }
-/* element being dragged */
 .sortable-drag {
   opacity:1 !important;
-  background: rgba(20,15,40,0.97) !important;
-  border-color: var(--purple) !important;
-  box-shadow: 0 20px 40px rgba(168,85,247,0.3), 0 6px 14px rgba(0,0,0,0.4) !important;
-  transform: scale(1.03) rotate(-0.5deg) !important;
+  background:rgba(10,10,20,0.98) !important;
+  border-color:var(--neon-green) !important;
+  box-shadow:
+    0 0 30px rgba(57,255,20,0.15),
+    0 20px 40px rgba(0,0,0,0.6),
+    inset 0 0 60px rgba(57,255,20,0.03) !important;
+  transform:scale(1.02) !important;
   z-index:9999 !important;
 }
+.sortable-drag::before { opacity:1 !important; }
 
-/* ── Badge ── */
-.pos-badge {
-  width:28px; height:28px; border-radius:50%; flex-shrink:0;
-  background: rgba(168,85,247,0.2);
-  border:1px solid rgba(168,85,247,0.4);
+/* ── INDEX ── */
+.block-idx {
+  width:26px; height:26px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
-  font-size:0.72rem; font-weight:700; color:var(--purple);
-  transition: all 0.25s ease;
+  font-size:0.7rem; font-weight:700;
+  color:var(--neon-green);
+  border:1px solid rgba(57,255,20,0.3);
+  background:rgba(57,255,20,0.05);
+  transition: all 0.2s;
 }
 
-/* ── Icon ── */
+/* ── ICON ── */
 .block-icon {
-  width:40px; height:40px; border-radius:12px; flex-shrink:0;
+  width:36px; height:36px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
-  font-size:1.3rem;
+  font-size:1.15rem;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--term-border);
 }
 
-/* ── Text ── */
-.block-name { font-size:0.85rem; font-weight:700; margin-bottom:1px; }
-.block-desc { font-size:0.68rem; color:rgba(255,255,255,0.35); line-height:1.3; }
+/* ── TEXT ── */
 .block-info { flex:1; min-width:0; }
+.block-name {
+  font-family:'Space Grotesk',sans-serif;
+  font-size:0.8rem; font-weight:700; color:#e0e0e0;
+  margin-bottom:1px;
+}
+.block-desc { font-size:0.62rem; color:rgba(255,255,255,0.2); letter-spacing:0.3px; }
 
-/* ── Drag handle ── */
+/* ── HANDLE ── */
 .drag-handle {
-  flex-shrink:0; padding:4px;
-  color:rgba(255,255,255,0.2); font-size:0.9rem;
-  cursor:grab; transition: color 0.2s; letter-spacing:1px;
+  flex-shrink:0; color:rgba(57,255,20,0.2);
+  font-size:0.85rem; cursor:grab; transition: color 0.15s;
+  letter-spacing:2px;
 }
-.block-card:active .drag-handle { color:rgba(255,255,255,0.5); }
+.block-card:hover .drag-handle { color:rgba(57,255,20,0.6); }
 
-/* ── Move counter ── */
-.move-counter {
-  text-align:center; margin-bottom:8px;
-  font-size:0.75rem; color:rgba(255,255,255,0.3);
-}
-.move-counter span { color:var(--cyan); font-weight:700; }
-
-/* ── Success ── */
-@keyframes popIn { 0% { transform:scale(0.8); opacity:0; } 100% { transform:scale(1); opacity:1; } }
+/* ── DONE OVERLAY ── */
 .done-overlay {
-  position:fixed; inset:0; background:rgba(11,11,26,0.92);
+  position:fixed; inset:0;
+  background:rgba(10,10,20,0.95);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:9999; animation: popIn 0.3s ease;
+  z-index:99999;
+  animation: fadeIn 0.2s ease;
 }
-.done-emoji { font-size:4rem; margin-bottom:12px; animation: float 2s ease-in-out infinite; }
-.done-text { font-size:1.2rem; font-weight:700; margin-bottom:6px;
-  background: linear-gradient(135deg, var(--green), var(--cyan));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.done-icon {
+  font-size:3rem; margin-bottom:16px;
+  animation: pulse 1.5s ease-in-out infinite;
 }
-.done-sub { color:rgba(255,255,255,0.4); font-size:0.82rem; }
+@keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.1); } }
+.done-text {
+  font-family:'Syne',sans-serif;
+  font-size:1.3rem; font-weight:800; color:var(--neon-green);
+  letter-spacing:1px; text-transform:uppercase;
+  text-shadow:0 0 20px rgba(57,255,20,0.4);
+  margin-bottom:6px;
+}
+.done-sub { font-size:0.72rem; color:rgba(255,255,255,0.3); letter-spacing:0.5px; }
+
+/* ── Responsive ── */
+@media (max-width:380px) {
+  .header h1 { font-size:1.4rem; }
+  .block-card { padding:10px 10px; gap:8px; }
+  .block-icon { width:30px; height:30px; font-size:1rem; }
+}
 </style>
 </head>
 <body>
+<div class="glow-tl"></div>
+<div class="glow-br"></div>
 <div class="wrapper">
   <div class="header">
-    <div class="logo">🎮</div>
-    <h1>Редактор лендоса</h1>
-    <p>Перетащи блоки в нужный порядок</p>
+    <div class="header-tag">// system.editor</div>
+    <h1>Block<span class="accent">.</span>Editor</h1>
+    <div class="header-sub">drag blocks to reorder <span class="blink">▮</span></div>
   </div>
 
-  <div class="hint">
-    <div class="hint-icon">☝️</div>
-    <span>Зажми и тяни карточку, чтобы поменять её место</span>
+  <div class="term-line">
+    <span class="term-prompt">$</span>
+    <span>blocks.load() → перетащи карточки в нужный порядок</span>
   </div>
 
-  <div class="move-counter" id="moveCounter">Перемещений: <span>0</span></div>
+  <div class="stats-bar">
+    <div class="stat">BLOCKS<span class="val" id="blockCount">—</span></div>
+    <div class="stat">MOVES<span class="val" id="moveCount">0</span></div>
+    <div class="stat">STATUS<span class="val" id="statusVal">READY</span></div>
+  </div>
 
   <div class="blocks-list" id="sortable"></div>
 </div>
 
 <script>
-// ── Telegram WebApp ──
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
+tg.setHeaderColor('#0a0a14');
+tg.setBackgroundColor('#0a0a14');
 
-// Настраиваем MainButton
-tg.MainButton.setText('✅ Применить порядок');
-tg.MainButton.color = '#a855f7';
-tg.MainButton.textColor = '#ffffff';
+tg.MainButton.setText('› APPLY ORDER');
+tg.MainButton.color = '#39ff14';
+tg.MainButton.textColor = '#0a0a14';
 
-// ── Конфиг блоков ──
 const BLOCK_CFG = {
-  hero:     { emoji:'🦸', gradient:'linear-gradient(135deg,#f59e0b,#ef4444)', desc:'Заголовок + CTA кнопка' },
-  proof:    { emoji:'📊', gradient:'linear-gradient(135deg,#10b981,#06b6d4)', desc:'Цифры и соцдоказательства' },
-  benefits: { emoji:'✨', gradient:'linear-gradient(135deg,#a855f7,#ec4899)', desc:'4 преимущества с иконками' },
-  howto:    { emoji:'🔧', gradient:'linear-gradient(135deg,#06b6d4,#3b82f6)', desc:'3 шага как это работает' },
-  quiz:     { emoji:'🎯', gradient:'linear-gradient(135deg,#f59e0b,#84cc16)', desc:'Интерактивный квиз' },
-  form:     { emoji:'📝', gradient:'linear-gradient(135deg,#ec4899,#a855f7)', desc:'Форма заявки + кнопка' },
-  footer:   { emoji:'📄', gradient:'linear-gradient(135deg,#6b7280,#374151)', desc:'Копирайт и ссылки' },
+  hero:     { emoji:'⚡', desc:'header + call-to-action' },
+  proof:    { emoji:'◈',  desc:'social proof metrics' },
+  benefits: { emoji:'✦',  desc:'feature highlights' },
+  howto:    { emoji:'⟁',  desc:'step-by-step flow' },
+  quiz:     { emoji:'◇',  desc:'interactive quiz module' },
+  form:     { emoji:'▣',  desc:'lead capture form' },
+  footer:   { emoji:'▬',  desc:'footer + links' },
 };
 
 let moves = 0;
 let blocks = [];
 
-// ── Загрузка блоков из URL параметров ──
 function loadBlocks() {
   try {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get('blocks');
-    if (raw) {
-      blocks = JSON.parse(decodeURIComponent(raw));
-    }
-  } catch(e) {
-    console.error('Failed to parse blocks:', e);
-  }
+    if (raw) blocks = JSON.parse(decodeURIComponent(raw));
+  } catch(e) { console.error(e); }
 
   if (!blocks.length) {
-    // Фоллбэк — стандартные блоки для теста
     blocks = [
-      { id: 'hero',     label: '🦸 Hero — заголовок и CTA' },
-      { id: 'proof',    label: '📊 Социальное доказательство' },
-      { id: 'benefits', label: '✨ Преимущества' },
-      { id: 'howto',    label: '🔧 Как это работает' },
-      { id: 'form',     label: '📝 Форма заявки' },
-      { id: 'footer',   label: '📄 Footer' },
+      {id:'hero',label:'Hero — заголовок и CTA'},
+      {id:'proof',label:'Социальное доказательство'},
+      {id:'benefits',label:'Преимущества'},
+      {id:'howto',label:'Как это работает'},
+      {id:'form',label:'Форма заявки'},
+      {id:'footer',label:'Footer'},
     ];
   }
 
+  document.getElementById('blockCount').textContent = blocks.length;
   renderBlocks();
   tg.MainButton.show();
 }
@@ -226,11 +303,11 @@ function loadBlocks() {
 function renderBlocks() {
   const list = document.getElementById('sortable');
   list.innerHTML = blocks.map((b, i) => {
-    const cfg = BLOCK_CFG[b.id] || { emoji:'📦', gradient:'rgba(255,255,255,0.15)', desc:'' };
+    const cfg = BLOCK_CFG[b.id] || {emoji:'□', desc:'custom block'};
     return `
     <div class="block-card" data-id="${b.id}">
-      <div class="pos-badge">${i+1}</div>
-      <div class="block-icon" style="background:${cfg.gradient}">${cfg.emoji}</div>
+      <div class="block-idx">${String(i+1).padStart(2,'0')}</div>
+      <div class="block-icon">${cfg.emoji}</div>
       <div class="block-info">
         <div class="block-name">${b.label}</div>
         <div class="block-desc">${cfg.desc}</div>
@@ -240,44 +317,48 @@ function renderBlocks() {
   }).join('');
 
   Sortable.create(list, {
-    animation: 200,
-    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-    ghostClass: 'sortable-ghost',
-    dragClass: 'sortable-drag',
-    handle: '.block-card',
-    onEnd() { 
+    animation:180,
+    easing:'cubic-bezier(0.22, 1, 0.36, 1)',
+    ghostClass:'sortable-ghost',
+    dragClass:'sortable-drag',
+    handle:'.block-card',
+    onEnd() {
       moves++;
-      updateBadges();
-      tg.HapticFeedback.impactOccurred('light');
+      updateUI();
+      try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
     },
   });
 }
 
-function updateBadges() {
-  document.querySelectorAll('.pos-badge').forEach((b, i) => {
-    b.textContent = i + 1;
-    b.style.transform = 'scale(1.25)';
-    setTimeout(() => b.style.transform = '', 250);
+function updateUI() {
+  document.querySelectorAll('.block-idx').forEach((el, i) => {
+    el.textContent = String(i+1).padStart(2,'0');
+    el.style.transform = 'scale(1.3)';
+    el.style.color = '#00fff7';
+    setTimeout(() => { el.style.transform=''; el.style.color=''; }, 250);
   });
-  document.querySelector('#moveCounter span').textContent = moves;
+  document.getElementById('moveCount').textContent = moves;
+  document.getElementById('statusVal').textContent = moves > 0 ? 'MODIFIED' : 'READY';
+  document.getElementById('statusVal').style.color = moves > 0 ? '#ff0' : '';
 }
 
-// ── Отправка результата в Telegram ──
 tg.MainButton.onClick(function() {
   const order = [...document.querySelectorAll('.block-card')].map(c => c.dataset.id);
-  
-  // Показываем успех
+
   const overlay = document.createElement('div');
   overlay.className = 'done-overlay';
   overlay.innerHTML = `
-    <div class="done-emoji">🚀</div>
-    <div class="done-text">Порядок применён!</div>
-    <div class="done-sub">Лендинг обновляется...</div>
+    <div class="done-icon">⚡</div>
+    <div class="done-text">Order Applied</div>
+    <div class="done-sub">pushing changes to telegram...</div>
   `;
   document.body.appendChild(overlay);
+  document.getElementById('statusVal').textContent = 'DEPLOYED';
+  document.getElementById('statusVal').style.color = 'var(--neon-green)';
 
-  // Отправляем данные боту
-  tg.sendData(JSON.stringify({ order: order, moves: moves }));
+  setTimeout(() => {
+    tg.sendData(JSON.stringify({order, moves}));
+  }, 400);
 });
 
 loadBlocks();
